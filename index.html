@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>前端功能整合</title>
+</head>
+<body>
+  <h1>前端功能整合</h1>
+
+  <label for="userInput">输入信息：</label>
+  <input type="text" id="userInput" placeholder="在这里输入信息">
+  <button onclick="sendData()">发送数据到后端</button>
+
+  <br>
+
+  <table id="csvTable">
+    <!-- 表头 -->
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <!-- 表格主体 -->
+    <tbody id="csvContent"></tbody>
+  </table>
+
+  <script>
+    
+    // 删除数据的函数
+    function deleteData(id) {
+      // 发送删除请求到后端
+      console.log(1111)
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', 'delete.php', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = JSON.parse(xhr.responseText);
+            console.log('后端返回的数据:', response);
+            
+            // 后端处理完成后，触发刷新显示
+            readCSV();
+          } else {
+            console.error('向后端发送删除请求时发生错误:', xhr.status);
+          }
+        }
+      };
+      xhr.send(JSON.stringify({ id: id }));
+    }
+
+    function readCSV() {
+      fetch('example.csv?t=' + Date.now())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('响应失败，状态码: ' + response.status);
+          }
+          return response.text();
+        })
+        .then(csvContent => {
+          // 处理 CSV 内容，这里将其转换成表格形式显示
+          var lines = csvContent.trim().split('\n');
+          var header = lines.shift().split(',');
+          
+          var tableBody = lines.map(line => {
+            var cells = line.split(',');
+            var id = cells[0]; // 获取 ID 列的值
+            
+
+            return '<tr>' +
+              cells.map(cell => '<td>' + cell + '</td>').join('') +
+              '<td><button onclick="updateData(\'' + id + '\')">编辑</button> <button onclick="deleteData(\'' + id + '\')">删除</button>' +
+              '</tr>';
+              
+          }).join('');
+
+          // 更新表格主体
+          document.getElementById('csvContent').innerHTML = tableBody;
+        })
+        .catch(error => console.error('读取CSV文件时发生错误:', error));
+    }
+
+    function sendData() {
+      // 获取用户输入的信息
+      var userInput = document.getElementById('userInput').value;
+
+      // 检查用户是否输入了信息
+      if (!userInput) {
+        alert('请输入信息后再发送数据。');
+        return;
+      }
+
+      // 准备要发送的数据
+      var data = {
+        message: userInput
+      };
+
+      // 使用AJAX发送POST请求
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', 'backend.php', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          console.log('后端返回的数据:', response);
+          
+          // 后端处理完成后，触发刷新显示
+          readCSV();
+          //alert(xhr.readyState+xhr.status)
+        }
+      };
+      xhr.send(JSON.stringify(data));
+      //readCSV();
+      //  alert(1111)
+    }
+
+    // 在页面加载时自动读取CSV文件
+    document.addEventListener('DOMContentLoaded', function () {
+      readCSV();
+    });
+
+    /*
+    //使用jquery.js
+    function upload(){
+      var userInput = document.getElementById('userInput').value;
+
+      // 检查用户是否输入了信息
+      if (!userInput) {
+        alert('请输入信息后再发送数据。');
+        return;
+      }
+
+      // 准备要发送的数据
+      var data = {
+        message: userInput
+      };
+      $.ajax({ url: "backend.php", 
+        type: 'POST', 
+        contentType: "application/json",
+         data: JSON.stringify(data) })
+         .then(res => {readCSV();
+        console.log(res);}
+         ) 
+        }*/
+    
+  </script>
+</body>
+</html>
